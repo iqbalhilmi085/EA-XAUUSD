@@ -1,6 +1,7 @@
 # Never upload secrets or local trading state to Vercel.
 telegram.json
 trader/
+.vercel-env.local.json
 *.log
 
 # Python cache

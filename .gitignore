@@ -10,7 +10,10 @@ trader/
 __pycache__/
 *.pyc
 .vercel/
+.vercel-env.local.json
 
 # OS files
 .DS_Store
 Thumbs.db
+
+.vercel

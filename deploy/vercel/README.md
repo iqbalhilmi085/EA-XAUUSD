@@ -76,6 +76,16 @@ Generate secret acak:
 python -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
 
+Atau isi semuanya otomatis (setelah `npx vercel login` + `npx vercel link`):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File deploy/vercel/setup_env.ps1
+```
+
+Script ini membaca token/chat ID dari `telegram.json`, membuat secret acak,
+mengirim semua variable ke environment `production`, dan menyimpan secret
+lokal ke `.vercel-env.local.json` (git-ignored).
+
 Setelah mengubah env, **redeploy** (`npx vercel --prod`) agar berlaku.
 
 ## 4. Set webhook Telegram
