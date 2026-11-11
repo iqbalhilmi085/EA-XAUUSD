@@ -1,0 +1,17 @@
+InpLotSize=0.09
+InpDailyProfitPct=1.0
+InpDailyMaxLossPct=3.5
+InpEMAFastM5=20
+InpEMASlowM5=50
+InpBreakoutBars=30
+InpATRPeriodM5=14
+InpATRMult=1.75
+InpTP_RR=3.0
+InpTrendMinSepPips=6.0
+InpCooldownMin=5
+InpMaxEntriesPerDay=10
+InpMaxSpreadPoints=20
+InpStartHour=0
+InpEndHour=24
+InpMagicNumber=55300
+InpSlippagePoints=10

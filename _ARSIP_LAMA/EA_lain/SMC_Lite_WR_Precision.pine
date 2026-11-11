@@ -1,0 +1,479 @@
+//@version=5
+indicator("SMC Lite Custom + WR Dashboard (Rapi)", overlay=true, max_labels_count=500, max_boxes_count=500, max_lines_count=500, max_bars_back=2000)
+
+// Inputs
+swingLength = input.int(10, "Swing Length", minval=2, maxval=50, group="Zone Precision")
+atrLength = input.int(50, "ATR Length", minval=5, group="Zone Precision")
+minZoneAtr = input.float(0.15, "Minimum Zone ATR", minval=0.05, step=0.05, group="Zone Precision")
+maxZoneAtr = input.float(1.20, "Maximum Zone ATR", minval=0.20, step=0.05, group="Zone Precision")
+zoneAtrWidth = input.float(0.35, "Fallback Zone Width (ATR)", minval=0.05, maxval=3, step=0.05, group="Zone Precision")
+maxZoneAge = input.int(500, "Maximum Zone Age (Bars)", minval=50, maxval=5000, group="Zone Precision")
+useReaction = input.bool(true, "Require Displacement", group="Zone Precision")
+reactionAtr = input.float(0.35, "Minimum Displacement ATR", minval=0, step=0.05, group="Zone Precision")
+minZoneGapAtr = input.float(0.50, "Minimum Zone Gap (ATR)", minval=0, step=0.05, group="Zone Precision")
+maxZones = input.int(20, "Maximum Zones", minval=5, maxval=50, group="Zone Precision")
+
+entryPct = input.float(50, "Entry Position %", minval=0, maxval=100, group="Trade Plan")
+slBufferPoints = input.float(15, "SL Buffer (Points)", minval=0, group="Trade Plan")
+rr1 = input.float(1, "TP1 RR", minval=0.1, step=0.1, group="Trade Plan")
+rr2 = input.float(2, "TP2 RR", minval=0.1, step=0.1, group="Trade Plan")
+rr3 = input.float(3, "TP3 RR Final", minval=0.1, step=0.1, group="Trade Plan")
+tradeQty = input.float(1000, "Quantity for Simulated PnL", minval=0, group="Trade Plan")
+tradeOnTouch = input.bool(true, "Simulate Entry When POI Is Touched", group="Trade Plan")
+oneTradePerZone = input.bool(true, "One Entry Per Zone", group="Trade Plan")
+oneActiveTrade = input.bool(true, "Only One Active Entry", group="Trade Plan")
+useCandleConfirmation = input.bool(true, "Candle Confirmation", group="Entry Filter")
+useTrendFilter = input.bool(true, "EMA Trend Filter", group="Entry Filter")
+trendEmaPeriod = input.int(200, "EMA Period", minval=2, group="Entry Filter")
+minBodyAtr = input.float(0.10, "Minimum Candle Body (ATR)", minval=0, step=0.05, group="Entry Filter")
+useRsiFilter = input.bool(true, "RSI Momentum Filter", group="Entry Filter")
+rsiLength = input.int(14, "RSI Length", minval=2, group="Entry Filter")
+rsiBullMin = input.float(52, "RSI Buy Minimum", minval=50, maxval=70, group="Entry Filter")
+rsiBearMax = input.float(48, "RSI Sell Maximum", minval=30, maxval=50, group="Entry Filter")
+useLiquiditySweep = input.bool(true, "Liquidity Sweep Filter", group="Entry Filter")
+liquidityLookback = input.int(10, "Liquidity Lookback", minval=3, maxval=50, group="Entry Filter")
+useMtfFilter = input.bool(true, "MTF Confirmation", group="Entry Filter")
+htf1 = input.timeframe("60", "Higher Timeframe 1", group="Entry Filter")
+htf2 = input.timeframe("240", "Higher Timeframe 2", group="Entry Filter")
+minimumScore = input.int(80, "Minimum Entry Score", minval=50, maxval=90, group="Entry Filter")
+
+showPlan = input.bool(true, "Show Entry / SL / TP Plan", group="Display")
+showEntryMarkers = input.bool(true, "Show Entry Markers", group="Display")
+showZoneTags = input.bool(true, "Show Zone Tags", group="Display")
+showZoneDetails = input.bool(true, "Show Zone Entry/SL/TP Details", group="Display")
+showBos = input.bool(true, "Show BOS", group="Display")
+showEma = input.bool(false, "Show EMA", group="Display")
+showForecast = input.bool(true, "Show Forward Price Bias", group="Display")
+forecastAtrBars = input.int(5, "Forecast Horizon (Bars)", minval=1, maxval=50, group="Display")
+showSignalCallout = input.bool(true, "Show Entry Callout", group="Display")
+showDashboard = input.bool(true, "Show Dashboard", group="Dashboard")
+dashPos = input.string("Top Right", "Dashboard Position", options=["Top Right", "Top Left", "Bottom Right", "Bottom Left"], group="Dashboard")
+dashSize = input.string("Small", "Dashboard Text Size", options=["Tiny", "Small", "Normal"], group="Dashboard")
+showEntryList = input.bool(true, "Show Entry List", group="Dashboard")
+entryListRows = input.int(8, "Entry List Rows", minval=3, maxval=12, group="Dashboard")
+
+atr = ta.atr(atrLength)
+trendEma = ta.ema(close, trendEmaPeriod)
+rsi = ta.rsi(close, rsiLength)
+previousHighLiquidity = ta.highest(high[1], liquidityLookback)
+previousLowLiquidity = ta.lowest(low[1], liquidityLookback)
+bullishLiquiditySweep = low < previousLowLiquidity and close > previousLowLiquidity
+bearishLiquiditySweep = high > previousHighLiquidity and close < previousHighLiquidity
+htf1Close = request.security(syminfo.tickerid, htf1, close[1], lookahead=barmerge.lookahead_off)
+htf1Ema50 = request.security(syminfo.tickerid, htf1, ta.ema(close, 50)[1], lookahead=barmerge.lookahead_off)
+htf1Ema200 = request.security(syminfo.tickerid, htf1, ta.ema(close, 200)[1], lookahead=barmerge.lookahead_off)
+htf2Close = request.security(syminfo.tickerid, htf2, close[1], lookahead=barmerge.lookahead_off)
+htf2Ema50 = request.security(syminfo.tickerid, htf2, ta.ema(close, 50)[1], lookahead=barmerge.lookahead_off)
+htf2Ema200 = request.security(syminfo.tickerid, htf2, ta.ema(close, 200)[1], lookahead=barmerge.lookahead_off)
+mtfBull = not useMtfFilter or (htf1Close > htf1Ema50 and htf1Ema50 > htf1Ema200 and htf2Close > htf2Ema50 and htf2Ema50 > htf2Ema200)
+mtfBear = not useMtfFilter or (htf1Close < htf1Ema50 and htf1Ema50 < htf1Ema200 and htf2Close < htf2Ema50 and htf2Ema50 < htf2Ema200)
+pivotHigh = ta.pivothigh(high, swingLength, swingLength)
+pivotLow = ta.pivotlow(low, swingLength, swingLength)
+
+var zoneBox = array.new_box()
+var zoneLine = array.new_line()
+var zoneTag = array.new_label()
+var zoneTop = array.new_float()
+var zoneBottom = array.new_float()
+var zonePoi = array.new_float()
+var zoneSl = array.new_float()
+var zoneType = array.new_int()
+var zoneCreated = array.new_int()
+var zoneLive = array.new_bool()
+var zoneUsed = array.new_bool()
+
+var entryPrice = array.new_float()
+var stopPrice = array.new_float()
+var tp1Price = array.new_float()
+var tp2Price = array.new_float()
+var tp3Price = array.new_float()
+var entryDirection = array.new_int()
+var entryLive = array.new_bool()
+var entryMfe = array.new_float()
+var entryResult = array.new_int()
+
+var totalBuy = 0
+var totalSell = 0
+var wonBuy = 0
+var wonSell = 0
+var float previousHigh = na
+var float previousLow = na
+
+f_size() => dashSize == "Tiny" ? size.tiny : dashSize == "Normal" ? size.normal : size.small
+f_price(_value) => str.tostring(_value, format.mintick)
+f_num(_value, _decimals) => str.tostring(_value, "#.##")
+f_zone_overlap(_price) =>
+    allowed = true
+    if array.size(zonePoi) > 0
+        for j = 0 to array.size(zonePoi) - 1
+            if math.abs(_price - array.get(zonePoi, j)) <= atr * minZoneGapAtr
+                allowed := false
+    allowed
+
+f_add_zone(_type, _level, _pivotBar) =>
+    pivotAtr = atr[swingLength]
+    rawHeight = _type == 1 ? high[swingLength] - math.min(open[swingLength], close[swingLength]) : math.max(open[swingLength], close[swingLength]) - low[swingLength]
+    width = math.max(nz(rawHeight, 0), pivotAtr * minZoneAtr)
+    width := math.max(width, pivotAtr * zoneAtrWidth)
+    width := math.min(width, pivotAtr * maxZoneAtr)
+    top = _type == 1 ? _level : _level + width
+    bottom = _type == 1 ? _level - width : _level
+    poi = bottom + (top - bottom) * entryPct / 100
+    stop = _type == 1 ? top + syminfo.mintick * slBufferPoints : bottom - syminfo.mintick * slBufferPoints
+    reaction = _type == 1 ? _level - close[swingLength] : close[swingLength] - _level
+    allowed = (not useReaction or reaction >= pivotAtr * reactionAtr) and f_zone_overlap(poi)
+    if allowed
+        zoneColor = _type == 1 ? color.new(#ff6b6b, 84) : color.new(#51cf66, 84)
+        edgeColor = _type == 1 ? color.new(#e03131, 20) : color.new(#2f9e44, 20)
+        poiColor = _type == 1 ? #e03131 : #2f9e44
+        newBox = box.new(_pivotBar, top, bar_index, bottom, bgcolor=zoneColor, border_color=edgeColor, border_width=1, extend=extend.right)
+        newLine = line.new(_pivotBar, poi, bar_index, poi, color=poiColor, style=line.style_dashed, width=2, extend=extend.right)
+        zoneDirection = _type == 1 ? "SELL" : "BUY"
+        zoneDetails = "\n" + zoneDirection + "\nENTRY " + f_price(poi) + " (" + f_num(entryPct, 1) + "%)\nSL " + f_price(stop) + "\nTP1 " + f_price(_type == 1 ? poi - math.abs(stop - poi) * rr1 : poi + math.abs(stop - poi) * rr1) + "\nTP2 " + f_price(_type == 1 ? poi - math.abs(stop - poi) * rr2 : poi + math.abs(stop - poi) * rr2) + "\nTP3 " + f_price(_type == 1 ? poi - math.abs(stop - poi) * rr3 : poi + math.abs(stop - poi) * rr3)
+        zoneName = _type == 1 ? "SUPPLY" : "DEMAND"
+        tagText = showZoneDetails ? zoneName + zoneDetails : zoneName + " | " + zoneDirection
+        newTag = showZoneTags ? label.new(_pivotBar, _type == 1 ? top : bottom, tagText, style=_type == 1 ? label.style_label_down : label.style_label_up, color=edgeColor, textcolor=color.white, size=size.tiny) : na
+        array.push(zoneBox, newBox)
+        array.push(zoneLine, newLine)
+        array.push(zoneTag, newTag)
+        array.push(zoneTop, top)
+        array.push(zoneBottom, bottom)
+        array.push(zonePoi, poi)
+        array.push(zoneSl, stop)
+        array.push(zoneType, _type)
+        array.push(zoneCreated, bar_index)
+        array.push(zoneLive, true)
+        array.push(zoneUsed, false)
+        if array.size(zoneBox) > maxZones
+            box.delete(array.shift(zoneBox))
+            line.delete(array.shift(zoneLine))
+            label.delete(array.shift(zoneTag))
+            array.shift(zoneTop)
+            array.shift(zoneBottom)
+            array.shift(zonePoi)
+            array.shift(zoneSl)
+            array.shift(zoneType)
+            array.shift(zoneCreated)
+            array.shift(zoneLive)
+            array.shift(zoneUsed)
+
+if not na(pivotHigh)
+    f_add_zone(1, pivotHigh, bar_index - swingLength)
+    previousHigh := pivotHigh
+else if not na(pivotLow)
+    f_add_zone(-1, pivotLow, bar_index - swingLength)
+    previousLow := pivotLow
+
+openTrades = 0
+if array.size(entryLive) > 0
+    for i = 0 to array.size(entryLive) - 1
+        if array.get(entryLive, i)
+            openTrades += 1
+
+// Resolve entries only after the entry candle. SL wins when both levels are inside one candle.
+if array.size(entryPrice) > 0
+    for i = 0 to array.size(entryPrice) - 1
+        if array.get(entryLive, i)
+            direction = array.get(entryDirection, i)
+            entry = array.get(entryPrice, i)
+            stop = array.get(stopPrice, i)
+            finalTarget = array.get(tp3Price, i)
+            mfe = direction == 1 ? math.max(array.get(entryMfe, i), high) : math.min(array.get(entryMfe, i), low)
+            array.set(entryMfe, i, mfe)
+            hitStop = direction == 1 ? low <= stop : high >= stop
+            hitTarget = direction == 1 ? high >= finalTarget : low <= finalTarget
+            if hitStop or hitTarget
+                if hitTarget and not hitStop
+                    array.set(entryResult, i, 1)
+                    if direction == 1
+                        wonBuy += 1
+                    else
+                        wonSell += 1
+                else
+                    array.set(entryResult, i, -1)
+                array.set(entryLive, i, false)
+                openTrades -= 1
+
+newBuy = false
+newSell = false
+if array.size(zoneBox) > 0
+    for i = array.size(zoneBox) - 1 to 0
+        if array.get(zoneLive, i)
+            direction = array.get(zoneType, i)
+            top = array.get(zoneTop, i)
+            bottom = array.get(zoneBottom, i)
+            poi = array.get(zonePoi, i)
+            zoneAge = bar_index - array.get(zoneCreated, i)
+            zoneBroken = direction == 1 ? close >= top : close <= bottom
+            if zoneBroken or zoneAge > maxZoneAge
+                array.set(zoneLive, i, false)
+                box.set_extend(array.get(zoneBox, i), extend.none)
+                line.set_extend(array.get(zoneLine, i), extend.none)
+                box.delete(array.get(zoneBox, i))
+                line.delete(array.get(zoneLine, i))
+                label.delete(array.get(zoneTag, i))
+                array.remove(zoneBox, i)
+                array.remove(zoneLine, i)
+                array.remove(zoneTag, i)
+                array.remove(zoneTop, i)
+                array.remove(zoneBottom, i)
+                array.remove(zonePoi, i)
+                array.remove(zoneSl, i)
+                array.remove(zoneType, i)
+                array.remove(zoneCreated, i)
+                array.remove(zoneLive, i)
+                array.remove(zoneUsed, i)
+                if zoneBroken and showBos
+                    label.new(bar_index, direction == 1 ? top : bottom, "BOS", color=color.new(#0f172a, 0), textcolor=color.white, style=direction == 1 ? label.style_label_down : label.style_label_up, size=size.tiny)
+            else
+                touch = high >= poi and low <= poi
+                body = math.abs(close - open)
+                isDemand = direction == -1
+                candleOk = not useCandleConfirmation or (body >= atr * minBodyAtr and (isDemand ? close > open and close > poi : close < open and close < poi))
+                trendOk = not useTrendFilter or (isDemand ? close > trendEma : close < trendEma)
+                mtfOk = not useMtfFilter or (isDemand ? mtfBull : mtfBear)
+                rsiOk = not useRsiFilter or (isDemand ? rsi >= rsiBullMin : rsi <= rsiBearMax)
+                liquidityOk = not useLiquiditySweep or (isDemand ? bullishLiquiditySweep : bearishLiquiditySweep)
+                trendScore = trendOk ? 20 : 0
+                mtfScore = mtfOk ? 20 : 0
+                zoneScore = touch ? 15 : 0
+                liquidityScore = liquidityOk ? 15 : 0
+                rsiScore = rsiOk ? 10 : 0
+                candleScore = candleOk ? 10 : 0
+                signalScore = trendScore + mtfScore + zoneScore + liquidityScore + rsiScore + candleScore
+                capacityOk = not oneActiveTrade or openTrades == 0
+                if tradeOnTouch and barstate.isconfirmed and touch and trendOk and mtfOk and rsiOk and liquidityOk and candleOk and signalScore >= minimumScore and capacityOk and (not oneTradePerZone or not array.get(zoneUsed, i))
+                    stop = array.get(zoneSl, i)
+                    risk = math.abs(poi - stop)
+                    target1 = direction == 1 ? poi - risk * rr1 : poi + risk * rr1
+                    target2 = direction == 1 ? poi - risk * rr2 : poi + risk * rr2
+                    target3 = direction == 1 ? poi - risk * rr3 : poi + risk * rr3
+                    array.push(entryPrice, poi)
+                    array.push(stopPrice, stop)
+                    array.push(tp1Price, target1)
+                    array.push(tp2Price, target2)
+                    array.push(tp3Price, target3)
+                    array.push(entryDirection, direction == 1 ? -1 : 1)
+                    array.push(entryLive, true)
+                    array.push(entryMfe, poi)
+                    array.push(entryResult, 0)
+                    array.set(zoneUsed, i, true)
+                    openTrades += 1
+                    if direction == 1
+                        totalSell += 1
+                        newSell := true
+                        if showSignalCallout
+                            label.new(bar_index + 2, poi, "SELL\nENTRY " + f_price(poi) + "\nSL " + f_price(stop) + "\nTP1 " + f_price(target1) + "\nTP2 " + f_price(target2) + "\nTP3 " + f_price(target3), style=label.style_label_left, color=#e03131, textcolor=color.white, size=size.small)
+                    else
+                        totalBuy += 1
+                        newBuy := true
+                        if showSignalCallout
+                            label.new(bar_index + 2, poi, "BUY\nENTRY " + f_price(poi) + "\nSL " + f_price(stop) + "\nTP1 " + f_price(target1) + "\nTP2 " + f_price(target2) + "\nTP3 " + f_price(target3), style=label.style_label_left, color=#2f9e44, textcolor=color.white, size=size.small)
+
+plotshape(showEntryMarkers and newBuy, "BUY Entry", shape.triangleup, location.belowbar, color=#2f9e44, size=size.small)
+plotshape(showEntryMarkers and newSell, "SELL Entry", shape.triangledown, location.abovebar, color=#e03131, size=size.small)
+alertcondition(newBuy, "SMC BUY", "SMC BUY entry confirmed")
+alertcondition(newSell, "SMC SELL", "SMC SELL entry confirmed")
+
+// Active position plan: green reward area, red risk area, Entry/SL/TP1/TP2/TP3 labels.
+var line planEntryLine = na
+var line planStopLine = na
+var line planTp1Line = na
+var line planTp2Line = na
+var line planTp3Line = na
+var box planReward = na
+var box planRisk = na
+var label planEntryLabel = na
+var label planStopLabel = na
+var label planTp1Label = na
+var label planTp2Label = na
+var label planTp3Label = na
+var label planPnlLabel = na
+if showPlan and array.size(entryPrice) > 0
+    latest = array.size(entryPrice) - 1
+    if array.get(entryLive, latest)
+        entry = array.get(entryPrice, latest)
+        stop = array.get(stopPrice, latest)
+        target1 = array.get(tp1Price, latest)
+        target2 = array.get(tp2Price, latest)
+        target3 = array.get(tp3Price, latest)
+        direction = array.get(entryDirection, latest)
+        buy = direction == 1
+        stopDistance = math.abs(entry - stop)
+        targetDistance = math.abs(target3 - entry)
+        stopAmount = stopDistance * tradeQty
+        targetAmount = targetDistance * tradeQty
+        stopPercent = entry != 0 ? stopDistance / entry * 100 : 0.0
+        targetPercent = entry != 0 ? targetDistance / entry * 100 : 0.0
+        floatingPnl = buy ? (close - entry) * tradeQty : (entry - close) * tradeQty
+        pnlColor = floatingPnl >= 0 ? #2f9e44 : #e03131
+        mfe = array.get(entryMfe, latest)
+        tp1Hit = buy ? mfe >= target1 : mfe <= target1
+        tp2Hit = buy ? mfe >= target2 : mfe <= target2
+        if na(planEntryLine)
+            planEntryLine := line.new(bar_index - 1, entry, bar_index, entry, extend=extend.right, color=color.white, style=line.style_dashed, width=2)
+            planStopLine := line.new(bar_index - 1, stop, bar_index, stop, extend=extend.right, color=#e03131, width=1)
+            planTp1Line := line.new(bar_index - 1, target1, bar_index, target1, extend=extend.right, color=color.new(#2f9e44, 35), style=line.style_dotted)
+            planTp2Line := line.new(bar_index - 1, target2, bar_index, target2, extend=extend.right, color=color.new(#2f9e44, 20), style=line.style_dotted)
+            planTp3Line := line.new(bar_index - 1, target3, bar_index, target3, extend=extend.right, color=#2f9e44, width=2)
+            planReward := box.new(bar_index - 1, math.max(entry, target3), bar_index, math.min(entry, target3), bgcolor=color.new(#2f9e44, 82), border_color=color.new(#2f9e44, 20), extend=extend.right)
+            planRisk := box.new(bar_index - 1, math.max(entry, stop), bar_index, math.min(entry, stop), bgcolor=color.new(#e03131, 80), border_color=color.new(#e03131, 20), extend=extend.right)
+            planEntryLabel := label.new(bar_index, entry, (buy ? "BUY POSITION" : "SELL POSITION") + "\nENTRY " + f_price(entry), style=label.style_label_left, color=#0f172a, textcolor=color.white, size=size.small)
+            planStopLabel := label.new(bar_index, stop, "Stop: " + f_num(stopAmount, 0) + " (" + f_num(stopPercent, 3) + "%) " + f_price(stop) + " | Qty: " + f_num(tradeQty, 2), style=label.style_label_left, color=#e03131, textcolor=color.white, size=size.small)
+            planTp1Label := label.new(bar_index, target1, "TP1 " + f_price(target1) + " | 1:" + f_num(rr1, 1) + (tp1Hit ? " OK" : ""), style=label.style_label_left, color=color.new(#2f9e44, 25), textcolor=color.white, size=size.tiny)
+            planTp2Label := label.new(bar_index, target2, "TP2 " + f_price(target2) + " | 1:" + f_num(rr2, 1) + (tp2Hit ? " OK" : ""), style=label.style_label_left, color=color.new(#2f9e44, 15), textcolor=color.white, size=size.tiny)
+            planTp3Label := label.new(bar_index, target3, "Target: " + f_num(targetAmount, 0) + " (" + f_num(targetPercent, 3) + "%) " + f_price(target3) + " | Qty: " + f_num(tradeQty, 2), style=label.style_label_left, color=#2f9e44, textcolor=color.white, size=size.small)
+            planPnlLabel := label.new(bar_index, entry, "Pembukaan PnL: " + f_num(floatingPnl, 0) + " | Entry: " + f_price(entry), style=label.style_label_center, color=pnlColor, textcolor=color.white, size=size.small)
+        else
+            line.set_y1(planEntryLine, entry)
+            line.set_y2(planEntryLine, entry)
+            line.set_y1(planStopLine, stop)
+            line.set_y2(planStopLine, stop)
+            line.set_y1(planTp1Line, target1)
+            line.set_y2(planTp1Line, target1)
+            line.set_y1(planTp2Line, target2)
+            line.set_y2(planTp2Line, target2)
+            line.set_y1(planTp3Line, target3)
+            line.set_y2(planTp3Line, target3)
+            box.set_top(planReward, math.max(entry, target3))
+            box.set_bottom(planReward, math.min(entry, target3))
+            box.set_top(planRisk, math.max(entry, stop))
+            box.set_bottom(planRisk, math.min(entry, stop))
+            label.set_xy(planEntryLabel, bar_index, entry)
+            label.set_xy(planStopLabel, bar_index, stop)
+            label.set_xy(planTp1Label, bar_index, target1)
+            label.set_xy(planTp2Label, bar_index, target2)
+            label.set_xy(planTp3Label, bar_index, target3)
+            label.set_text(planTp1Label, "TP1 " + f_price(target1) + " | 1:" + f_num(rr1, 1) + (tp1Hit ? " OK" : ""))
+            label.set_text(planTp2Label, "TP2 " + f_price(target2) + " | 1:" + f_num(rr2, 1) + (tp2Hit ? " OK" : ""))
+            label.set_text(planTp3Label, "Target: " + f_num(targetAmount, 0) + " (" + f_num(targetPercent, 3) + "%) " + f_price(target3) + " | Qty: " + f_num(tradeQty, 2))
+            label.set_text(planStopLabel, "Stop: " + f_num(stopAmount, 0) + " (" + f_num(stopPercent, 3) + "%) " + f_price(stop) + " | Qty: " + f_num(tradeQty, 2))
+            label.set_xy(planPnlLabel, bar_index, entry)
+            label.set_text(planPnlLabel, "Pembukaan PnL: " + f_num(floatingPnl, 0) + " | Entry: " + f_price(entry))
+            label.set_color(planPnlLabel, pnlColor)
+    else
+        if not na(planEntryLine)
+            line.delete(planEntryLine)
+            line.delete(planStopLine)
+            line.delete(planTp1Line)
+            line.delete(planTp2Line)
+            line.delete(planTp3Line)
+            box.delete(planReward)
+            box.delete(planRisk)
+            label.delete(planEntryLabel)
+            label.delete(planStopLabel)
+            label.delete(planTp1Label)
+            label.delete(planTp2Label)
+            label.delete(planTp3Label)
+            label.delete(planPnlLabel)
+            planEntryLine := na
+            planStopLine := na
+            planTp1Line := na
+            planTp2Line := na
+            planTp3Line := na
+            planReward := na
+            planRisk := na
+            planEntryLabel := na
+            planStopLabel := na
+            planTp1Label := na
+            planTp2Label := na
+            planTp3Label := na
+            planPnlLabel := na
+
+buyLoss = totalBuy - wonBuy
+sellLoss = totalSell - wonSell
+totalTrades = totalBuy + totalSell
+totalWins = wonBuy + wonSell
+overallWr = totalTrades > 0 ? totalWins * 100.0 / totalTrades : 0.0
+dashboardPosition = dashPos == "Top Right" ? position.top_right : dashPos == "Top Left" ? position.top_left : dashPos == "Bottom Right" ? position.bottom_right : position.bottom_left
+var table dashboard = table.new(dashboardPosition, 5, 5, border_width=2, border_color=#0f172a, frame_color=#0f172a, frame_width=2)
+if barstate.islast and showDashboard
+    header = #0f172a
+    row = #1f2937
+    table.cell(dashboard, 0, 0, "SMC", bgcolor=header, text_color=color.white, text_size=f_size())
+    table.cell(dashboard, 1, 0, "ENTRY", bgcolor=header, text_color=color.white, text_size=f_size())
+    table.cell(dashboard, 2, 0, "WIN", bgcolor=header, text_color=#51cf66, text_size=f_size())
+    table.cell(dashboard, 3, 0, "LOSS", bgcolor=header, text_color=#ff6b6b, text_size=f_size())
+    table.cell(dashboard, 4, 0, "WR", bgcolor=header, text_color=color.white, text_size=f_size())
+    table.cell(dashboard, 0, 1, "BUY", bgcolor=row, text_color=#51cf66, text_size=f_size())
+    table.cell(dashboard, 1, 1, str.tostring(totalBuy), bgcolor=row, text_color=color.white, text_size=f_size())
+    table.cell(dashboard, 2, 1, str.tostring(wonBuy), bgcolor=row, text_color=#51cf66, text_size=f_size())
+    table.cell(dashboard, 3, 1, str.tostring(buyLoss), bgcolor=row, text_color=#ff6b6b, text_size=f_size())
+    table.cell(dashboard, 4, 1, f_num(totalBuy > 0 ? wonBuy * 100.0 / totalBuy : 0, 1) + "%", bgcolor=row, text_color=color.white, text_size=f_size())
+    table.cell(dashboard, 0, 2, "SELL", bgcolor=row, text_color=#ff6b6b, text_size=f_size())
+    table.cell(dashboard, 1, 2, str.tostring(totalSell), bgcolor=row, text_color=color.white, text_size=f_size())
+    table.cell(dashboard, 2, 2, str.tostring(wonSell), bgcolor=row, text_color=#51cf66, text_size=f_size())
+    table.cell(dashboard, 3, 2, str.tostring(sellLoss), bgcolor=row, text_color=#ff6b6b, text_size=f_size())
+    table.cell(dashboard, 4, 2, f_num(totalSell > 0 ? wonSell * 100.0 / totalSell : 0, 1) + "%", bgcolor=row, text_color=color.white, text_size=f_size())
+    table.cell(dashboard, 0, 3, "TOTAL", bgcolor=#111827, text_color=color.white, text_size=f_size())
+    table.cell(dashboard, 1, 3, str.tostring(totalTrades), bgcolor=#111827, text_color=color.white, text_size=f_size())
+    table.cell(dashboard, 2, 3, str.tostring(totalWins), bgcolor=#111827, text_color=#51cf66, text_size=f_size())
+    table.cell(dashboard, 3, 3, str.tostring(buyLoss + sellLoss), bgcolor=#111827, text_color=#ff6b6b, text_size=f_size())
+    table.cell(dashboard, 4, 3, f_num(overallWr, 1) + "%", bgcolor=#111827, text_color=color.white, text_size=f_size())
+    table.cell(dashboard, 0, 4, "LIVE", bgcolor=#374151, text_color=color.white, text_size=f_size())
+    table.cell(dashboard, 1, 4, str.tostring(openTrades), bgcolor=#374151, text_color=color.white, text_size=f_size())
+    table.cell(dashboard, 2, 4, "ZONES", bgcolor=#374151, text_color=color.white, text_size=f_size())
+    table.cell(dashboard, 3, 4, str.tostring(array.size(zoneBox)), bgcolor=#374151, text_color=color.white, text_size=f_size())
+    table.cell(dashboard, 4, 4, close > trendEma ? "UP" : "DOWN", bgcolor=#374151, text_color=close > trendEma ? #51cf66 : #ff6b6b, text_size=f_size())
+
+plot(showEma ? trendEma : na, "Trend EMA", color=#f59f00, linewidth=2)
+
+// Forward bias is a projection from EMA slope and ATR, not a guaranteed prediction.
+emaSlope = trendEma - trendEma[1]
+forecastPrice = close + emaSlope * forecastAtrBars
+forecastColor = emaSlope >= 0 ? #2f9e44 : #e03131
+var line forecastLine = na
+var label forecastLabel = na
+if barstate.islast and showForecast and not na(forecastPrice)
+    if na(forecastLine)
+        forecastLine := line.new(bar_index, close, bar_index + forecastAtrBars, forecastPrice, xloc=xloc.bar_index, color=color.new(forecastColor, 15), style=line.style_dashed, width=2)
+    else
+        line.set_xy1(forecastLine, bar_index, close)
+        line.set_xy2(forecastLine, bar_index + forecastAtrBars, forecastPrice)
+        line.set_color(forecastLine, color.new(forecastColor, 15))
+    if na(forecastLabel)
+        forecastLabel := label.new(bar_index + forecastAtrBars, forecastPrice, "BIAS " + (emaSlope >= 0 ? "UP" : "DOWN") + "\n" + f_price(forecastPrice), style=label.style_label_left, color=forecastColor, textcolor=color.white, size=size.tiny)
+    else
+        label.set_xy(forecastLabel, bar_index + forecastAtrBars, forecastPrice)
+        label.set_text(forecastLabel, "BIAS " + (emaSlope >= 0 ? "UP" : "DOWN") + "\n" + f_price(forecastPrice))
+        label.set_color(forecastLabel, forecastColor)
+else if not showForecast and not na(forecastLabel)
+    label.delete(forecastLabel)
+    forecastLabel := na
+    if not na(forecastLine)
+        line.delete(forecastLine)
+        forecastLine := na
+
+// Recent entries panel: all trade levels are visible without placing text inside zones.
+entryListPosition = dashPos == "Top Right" ? position.bottom_right : dashPos == "Top Left" ? position.bottom_left : dashPos == "Bottom Right" ? position.top_right : position.top_left
+var table entryList = table.new(entryListPosition, 7, 13, border_width=1, border_color=#0f172a, frame_color=#0f172a, frame_width=1)
+if barstate.islast and showEntryList
+    listHeader = #0f172a
+    table.cell(entryList, 0, 0, "#", bgcolor=listHeader, text_color=color.white, text_size=f_size())
+    table.cell(entryList, 1, 0, "SIDE", bgcolor=listHeader, text_color=color.white, text_size=f_size())
+    table.cell(entryList, 2, 0, "ENTRY", bgcolor=listHeader, text_color=color.white, text_size=f_size())
+    table.cell(entryList, 3, 0, "SL", bgcolor=listHeader, text_color=#ff6b6b, text_size=f_size())
+    table.cell(entryList, 4, 0, "TP1 / TP2", bgcolor=listHeader, text_color=#51cf66, text_size=f_size())
+    table.cell(entryList, 5, 0, "TP3", bgcolor=listHeader, text_color=#51cf66, text_size=f_size())
+    table.cell(entryList, 6, 0, "STATUS", bgcolor=listHeader, text_color=color.white, text_size=f_size())
+    for rowIndex = 1 to 12
+        visible = rowIndex <= entryListRows and rowIndex <= array.size(entryPrice)
+        if visible
+            tradeIndex = array.size(entryPrice) - rowIndex
+            direction = array.get(entryDirection, tradeIndex)
+            isOpen = array.get(entryLive, tradeIndex)
+            result = array.get(entryResult, tradeIndex)
+            sideText = direction == 1 ? "BUY" : "SELL"
+            sideColor = direction == 1 ? #51cf66 : #ff6b6b
+            statusText = isOpen ? "OPEN" : result == 1 ? "WIN" : "LOSS"
+            statusColor = isOpen ? #f59f00 : result == 1 ? #51cf66 : #ff6b6b
+            table.cell(entryList, 0, rowIndex, str.tostring(rowIndex), bgcolor=#1f2937, text_color=color.white, text_size=f_size())
+            table.cell(entryList, 1, rowIndex, sideText, bgcolor=#1f2937, text_color=sideColor, text_size=f_size())
+            table.cell(entryList, 2, rowIndex, f_price(array.get(entryPrice, tradeIndex)), bgcolor=#1f2937, text_color=color.white, text_size=f_size())
+            table.cell(entryList, 3, rowIndex, f_price(array.get(stopPrice, tradeIndex)), bgcolor=#1f2937, text_color=#ff6b6b, text_size=f_size())
+            table.cell(entryList, 4, rowIndex, f_price(array.get(tp1Price, tradeIndex)) + " / " + f_price(array.get(tp2Price, tradeIndex)), bgcolor=#1f2937, text_color=#51cf66, text_size=f_size())
+            table.cell(entryList, 5, rowIndex, f_price(array.get(tp3Price, tradeIndex)), bgcolor=#1f2937, text_color=#51cf66, text_size=f_size())
+            table.cell(entryList, 6, rowIndex, statusText, bgcolor=#1f2937, text_color=statusColor, text_size=f_size())
+        else
+            for column = 0 to 6
+                table.cell(entryList, column, rowIndex, "", bgcolor=#1f2937, text_size=f_size())

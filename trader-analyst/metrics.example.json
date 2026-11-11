@@ -1,0 +1,17 @@
+{
+  "symbol": "XAUUSD",
+  "as_of": "2026-11-11T13:30:00+00:00",
+  "real_yield_10y_pct": 1.78,
+  "real_yield_10y_change_bps": -6.5,
+  "nominal_us10y_pct": 4.12,
+  "dxy_index": 103.45,
+  "dxy_24h_change_pct": -0.32,
+  "fed_funds_rate_pct": 4.50,
+  "next_fomc_cut_prob_pct": 68.0,
+  "us_cpi_yoy_pct": 2.6,
+  "gld_holdings_tons": 889.4,
+  "gld_tonnage_change_7d_tons": 6.2,
+  "central_bank_monthly_buying_tons": 58.0,
+  "gvz_gold_vix": 16.8,
+  "gold_silver_ratio": 83.2
+}

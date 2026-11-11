@@ -1,0 +1,32 @@
+; Full Margin aggressive preset - modal $100, target $100/hari
+; ===========================================================
+; === Identitas EA ===
+InpMagicNumber=20260201||20260201||1||202602010||N
+; === Target Profit (Tanpa SL) ===
+InpTargetProfitUSD=100.0||100.0||0.500000||5000.000000||N
+; === Pengaman Kerugian ===
+InpDailyLossUSD=50.0||50.0||5.000000||500.000000||N
+InpMaxDrawdownUSD=100.0||100.0||10.000000||1000.000000||N
+InpMaxTradesPerDay=60||60||1||600||N
+InpAutoResumeNextDay=true||false||0||true||N
+; === Layering Equity & Margin Aware ===
+InpUseEquityLot=true||false||0||true||N
+InpBaseLotPercent=20.0||20.0||0.100000||100.000000||N
+InpBaseLot=0.01||0.01||0.001000||0.100000||N
+InpLotMultiplier=2.0||2.0||0.150000||15.000000||N
+InpMaxLayers=6||6||1||80||N
+InpMaxLot=3.0||3.0||0.010000||30.000000||N
+InpMomentumPoints=200||200||1||2000||N
+InpMomentumMultiplier=3.0||3.0||0.300000||30.000000||N
+InpTimeframe=1||0||0||49153||N
+InpCooldownSeconds=60||60||1||600||N
+; === Proteksi Margin & Equity ===
+InpMaxMarginPercent=100.0||100.0||8.000000||800.000000||N
+InpMinFreeMarginPercent=0.0||0.0||1.500000||150.000000||N
+; === Filter Masuk Posisi ===
+InpUseTimeFilter=true||false||0||true||N
+InpTradeStartHour=2||2||1||20||N
+InpTradeEndHour=21||21||1||210||N
+InpUseSpreadFilter=true||false||0||true||N
+InpMaxSpreadPoints=300||300||1||3000||N
+InpLockDirection=false||false||0||true||N

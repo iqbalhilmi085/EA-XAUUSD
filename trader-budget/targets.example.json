@@ -1,0 +1,10 @@
+{
+  "project_name": "Project 5% XAUUSD TraderSkill",
+  "daily_profit_lock_pct": 2.0,
+  "daily_max_loss_pct": 2.0,
+  "weekly_target_pct": 5.0,
+  "monthly_target_pct": 20.0,
+  "global_kill_drawdown_pct": 25.0,
+  "max_entries_per_day": 10,
+  "cooldown_minutes_after_sl": 5
+}

@@ -1,0 +1,16 @@
+# Secret configuration files
+telegram.json
+trader-budget/config.json
+.env
+.env.*
+*.log
+
+# Runtime state & caches
+trader/
+__pycache__/
+*.pyc
+.vercel/
+
+# OS files
+.DS_Store
+Thumbs.db

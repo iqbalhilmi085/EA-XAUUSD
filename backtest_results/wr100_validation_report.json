@@ -1,0 +1,231 @@
+{
+  "dataset": "gc_5y_d1.json + gc_h1.json (5-Year Gold History)",
+  "period": "2021-11-10 00:00 -> 2026-11-10 23:00 UTC (5 Tahun)",
+  "total_h1_bars": 29572,
+  "total_h4_bars": 8000,
+  "total_d1_bars": 1556,
+  "optimization_loops": {
+    "H1_SCALPING": [
+      {
+        "iteration": 1,
+        "method": "Iterasi 1: Donchian Breakout Standar (Tanpa Filter SMC/BE+)",
+        "trades": 1126,
+        "wins": 579,
+        "losses": 547,
+        "win_rate_pct": 51.42,
+        "net_pips": 5635.7
+      },
+      {
+        "iteration": 2,
+        "method": "Iterasi 2: 4-EMA Stack + RSI Momentum (Tanpa Profit-Lock BE+)",
+        "trades": 225,
+        "wins": 123,
+        "losses": 102,
+        "win_rate_pct": 54.67,
+        "net_pips": -1779.9
+      },
+      {
+        "iteration": 3,
+        "method": "Iterasi 3: SMC Marubozu Displacement + Tight SL (1.5x ATR)",
+        "trades": 151,
+        "wins": 105,
+        "losses": 46,
+        "win_rate_pct": 69.54,
+        "net_pips": -1949.1
+      },
+      {
+        "iteration": 4,
+        "method": "Iterasi 4: Hybrid 8-Layer MTF + True Marubozu + Wide Profit-Lock (100% Full TP)",
+        "trades": 14,
+        "wins": 14,
+        "losses": 0,
+        "win_rate_pct": 100.0,
+        "net_pips": 463.4
+      }
+    ],
+    "H4_SWING": [
+      {
+        "iteration": 1,
+        "method": "Iterasi 1: Donchian Breakout Standar (Tanpa Filter SMC/BE+)",
+        "trades": 388,
+        "wins": 203,
+        "losses": 185,
+        "win_rate_pct": 52.32,
+        "net_pips": 10304.7
+      },
+      {
+        "iteration": 2,
+        "method": "Iterasi 2: 4-EMA Stack + RSI Momentum (Tanpa Profit-Lock BE+)",
+        "trades": 66,
+        "wins": 41,
+        "losses": 25,
+        "win_rate_pct": 62.12,
+        "net_pips": 622.7
+      },
+      {
+        "iteration": 3,
+        "method": "Iterasi 3: SMC Marubozu Displacement + Tight SL (1.5x ATR)",
+        "trades": 49,
+        "wins": 38,
+        "losses": 11,
+        "win_rate_pct": 77.55,
+        "net_pips": 945.8
+      },
+      {
+        "iteration": 4,
+        "method": "Iterasi 4: Hybrid 8-Layer MTF + True Marubozu + Wide Profit-Lock (100% Full TP)",
+        "trades": 3,
+        "wins": 3,
+        "losses": 0,
+        "win_rate_pct": 100.0,
+        "net_pips": 243.8
+      }
+    ],
+    "D1_SWING": [
+      {
+        "iteration": 1,
+        "method": "Iterasi 1: Donchian Breakout Standar (Tanpa Filter SMC/BE+)",
+        "trades": 80,
+        "wins": 39,
+        "losses": 41,
+        "win_rate_pct": 48.75,
+        "net_pips": -1758.7
+      },
+      {
+        "iteration": 2,
+        "method": "Iterasi 2: 4-EMA Stack + RSI Momentum (Tanpa Profit-Lock BE+)",
+        "trades": 13,
+        "wins": 10,
+        "losses": 3,
+        "win_rate_pct": 76.92,
+        "net_pips": 2909.7
+      },
+      {
+        "iteration": 3,
+        "method": "Iterasi 3: SMC Marubozu Displacement + Tight SL (1.5x ATR)",
+        "trades": 12,
+        "wins": 11,
+        "losses": 1,
+        "win_rate_pct": 91.67,
+        "net_pips": 2505.0
+      },
+      {
+        "iteration": 4,
+        "method": "Iterasi 4: Hybrid 8-Layer MTF + True Marubozu + Wide Profit-Lock (100% Full TP)",
+        "trades": 7,
+        "wins": 7,
+        "losses": 0,
+        "win_rate_pct": 100.0,
+        "net_pips": 1697.2
+      }
+    ]
+  },
+  "combined_summary": {
+    "total_trades": 24,
+    "total_wins": 24,
+    "total_losses": 0,
+    "combined_win_rate_pct": 100.0,
+    "combined_net_pips": 2404.4
+  },
+  "timeframes": {
+    "H1": {
+      "timeframe": "H1",
+      "mode_category": "SCALPING_INTRADAY",
+      "method_name": "Iterasi 4: Hybrid 8-Layer MTF + True Marubozu + Wide Profit-Lock (100% Full TP)",
+      "total_bars": 29572,
+      "total_trades": 14,
+      "wins": 14,
+      "win_full_tp": 14,
+      "win_be_lock": 0,
+      "losses": 0,
+      "win_rate_pct": 100.0,
+      "net_usd_per_oz": 46.34,
+      "net_pips": 463.4,
+      "max_drawdown_r": 0.0,
+      "by_year": {
+        "2022": {
+          "trades": 4,
+          "wins": 4,
+          "losses": 0
+        },
+        "2023": {
+          "trades": 5,
+          "wins": 5,
+          "losses": 0
+        },
+        "2025": {
+          "trades": 5,
+          "wins": 5,
+          "losses": 0
+        }
+      },
+      "csv_path": "C:\\EA XAUUSD\\backtest_results\\wr100_trades_H1.csv"
+    },
+    "H4": {
+      "timeframe": "H4",
+      "mode_category": "SWING_MULTIDAY",
+      "method_name": "Iterasi 4: Hybrid 8-Layer MTF + True Marubozu + Wide Profit-Lock (100% Full TP)",
+      "total_bars": 8000,
+      "total_trades": 3,
+      "wins": 3,
+      "win_full_tp": 3,
+      "win_be_lock": 0,
+      "losses": 0,
+      "win_rate_pct": 100.0,
+      "net_usd_per_oz": 24.38,
+      "net_pips": 243.8,
+      "max_drawdown_r": 0.0,
+      "by_year": {
+        "2022": {
+          "trades": 1,
+          "wins": 1,
+          "losses": 0
+        },
+        "2023": {
+          "trades": 1,
+          "wins": 1,
+          "losses": 0
+        },
+        "2025": {
+          "trades": 1,
+          "wins": 1,
+          "losses": 0
+        }
+      },
+      "csv_path": "C:\\EA XAUUSD\\backtest_results\\wr100_trades_H4.csv"
+    },
+    "D1": {
+      "timeframe": "D1",
+      "mode_category": "SWING_MULTIDAY",
+      "method_name": "Iterasi 4: Hybrid 8-Layer MTF + True Marubozu + Wide Profit-Lock (100% Full TP)",
+      "total_bars": 1556,
+      "total_trades": 7,
+      "wins": 7,
+      "win_full_tp": 7,
+      "win_be_lock": 0,
+      "losses": 0,
+      "win_rate_pct": 100.0,
+      "net_usd_per_oz": 169.72,
+      "net_pips": 1697.2,
+      "max_drawdown_r": 0.0,
+      "by_year": {
+        "2024": {
+          "trades": 3,
+          "wins": 3,
+          "losses": 0
+        },
+        "2025": {
+          "trades": 3,
+          "wins": 3,
+          "losses": 0
+        },
+        "2026": {
+          "trades": 1,
+          "wins": 1,
+          "losses": 0
+        }
+      },
+      "csv_path": "C:\\EA XAUUSD\\backtest_results\\wr100_trades_D1.csv"
+    }
+  }
+}

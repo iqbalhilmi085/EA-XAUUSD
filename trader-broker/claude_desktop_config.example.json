@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "xauusd-trader-skill": {
+      "command": "python",
+      "args": [
+        "C:/EA XAUUSD/xauusd_bot.py",
+        "--json"
+      ],
+      "env": {
+        "XAUUSD_SYMBOL": "XAUUSD",
+        "XAUUSD_EXECUTION_MODE": "semi",
+        "XAUUSD_BROKER_BACKEND": "bridge",
+        "XAUUSD_MAGIC_NUMBER": "55300"
+      }
+    }
+  }
+}

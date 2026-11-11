@@ -1,0 +1,14 @@
+{
+  "account_currency": "USD",
+  "account_balance": 1000.0,
+  "account_equity": 1000.0,
+  "day_start_equity": 1000.0,
+  "peak_equity": 1020.0,
+  "risk_per_trade_pct": 0.5,
+  "max_risk_per_trade_pct": 1.0,
+  "fixed_lot_override": 0.0,
+  "contract_size_oz": 100.0,
+  "min_lot": 0.01,
+  "max_lot": 10.0,
+  "lot_step": 0.01
+}

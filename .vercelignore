@@ -1,0 +1,27 @@
+# Never upload secrets or local trading state to Vercel.
+telegram.json
+trader/
+*.log
+
+# Python cache
+__pycache__/
+**/__pycache__/
+*.pyc
+
+# Not needed by the serverless signal engine
+_ARSIP_LAMA/
+tests/
+*.ex5
+*.set
+*.mq5
+*.pine
+validate_backtest_wr100.py
+tradingview_webhook.py
+
+# Keep the deployment small; /validasi only needs the JSON report.
+backtest_results/*.htm
+backtest_results/*.xml
+backtest_results/*.png
+backtest_results/*.csv
+backtest_results/*.ini
+backtest_results/*.log

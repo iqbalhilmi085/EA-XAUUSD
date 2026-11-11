@@ -1,0 +1,175 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// FluidTrades SMC Lite - Backtest Strategy (derived from Pmgjiv indicator)
+// Paste di Pine Editor > Add to chart > lihat tab "Strategy Tester"
+
+//@version=5
+strategy("FluidTrades SMC Lite - Backtest", overlay = true, max_boxes_count = 500, max_lines_count = 500, max_labels_count = 500, initial_capital = 10000, default_qty_type = strategy.fixed, default_qty_value = 1, pyramiding = 100)
+
+//
+// ================= SETTINGS =================
+//
+swing_length = input.int(10, title = 'Swing High/Low Length', group = 'Settings', minval = 1, maxval = 50)
+history_to_keep = input.int(20, title = 'History To Keep', minval = 5, maxval = 50)
+box_width = input.float(2.5, title = 'Supply/Demand Box Width', group = 'Settings', minval = 1, maxval = 10, step = 0.5)
+
+entry_pct = input.float(50.0, title = 'Entry Level % (0-100)', group = 'Trade Settings')
+sl_buffer = input.float(15.0, title = 'SL Buffer (Points)', group = 'Trade Settings')
+rr_target = input.float(2.0, title = 'Risk:Reward Ratio (TP)', group = 'Trade Settings')
+trade_qty = input.float(1.0, title = 'Qty per Trade', group = 'Trade Settings')
+
+use_date_filter = input.bool(true, title = 'Gunakan Filter Tanggal', group = 'Backtest Settings')
+start_date = input.time(timestamp('1 Jan 2025 00:00 +0000'), title = 'Tanggal Mulai', group = 'Backtest Settings')
+
+supply_color = input.color(color.new(#ffcccc, 30), title = 'Supply', group = 'Visual')
+supply_outline_color = input.color(color.new(color.red, 75), title = 'Outline S', group = 'Visual', inline = 's')
+demand_color = input.color(color.new(#ccffcc, 30), title = 'Demand', group = 'Visual')
+demand_outline_color = input.color(color.new(color.green, 75), title = 'Outline D', group = 'Visual', inline = 'd')
+bos_label_color = input.color(color.white, title = 'BOS Label', group = 'Visual')
+
+in_window = not use_date_filter or time >= start_date
+
+//
+// ================= VARIABLES =================
+//
+atr = ta.atr(50)
+swing_high = ta.pivothigh(high, swing_length, swing_length)
+swing_low = ta.pivotlow(low, swing_length, swing_length)
+
+var swing_high_values = array.new_float(5, 0.00)
+var swing_high_bns = array.new_int(5, 0)
+var swing_low_values = array.new_float(5, 0.00)
+var swing_low_bns = array.new_int(5, 0)
+
+var current_supply_box = array.new_box(history_to_keep, na)
+var current_demand_box = array.new_box(history_to_keep, na)
+var current_supply_poi = array.new_box(history_to_keep, na)
+var current_demand_poi = array.new_box(history_to_keep, na)
+var current_supply_ids = array.new_string(history_to_keep, na)
+var current_demand_ids = array.new_string(history_to_keep, na)
+var supply_bos = array.new_box(5, na)
+var demand_bos = array.new_box(5, na)
+
+var int order_seq = 0
+
+//
+// ================= FUNCTIONS =================
+//
+f_array_add_pop(array_id, new_value) =>
+    array.unshift(array_id, new_value)
+    array.pop(array_id)
+
+f_check_overlapping(new_poi, box_array, a) =>
+    atr_threshold = a * 2
+    okay_to_draw = true
+    if array.size(box_array) > 0
+        for i = 0 to array.size(box_array) - 1
+            bx = array.get(box_array, i)
+            if not na(bx)
+                poi = (box.get_top(bx) + box.get_bottom(bx)) / 2
+                if new_poi >= poi - atr_threshold and new_poi <= poi + atr_threshold
+                    okay_to_draw := false
+                    break
+    okay_to_draw
+
+f_cancel_oldest(box_array, poi_array, id_array) =>
+    idx = array.size(box_array) - 1
+    if not na(array.get(box_array, idx))
+        box.delete(array.get(box_array, idx))
+        box.delete(array.get(poi_array, idx))
+        old_id = array.get(id_array, idx)
+        if not na(old_id)
+            strategy.cancel(old_id)
+        array.set(id_array, idx, na)
+
+f_create_zone(value_array, bn_array, box_array, poi_array, id_array, box_type, a) =>
+    atr_buffer = a * (box_width / 10)
+    box_left = array.get(bn_array, 0)
+    box_right = bar_index
+    float box_top = na
+    float box_bottom = na
+    float poi = na
+    float sl_level = na
+    float tp_level = na
+    if box_type == 1
+        box_top := array.get(value_array, 0)
+        box_bottom := box_top - atr_buffer
+        poi := box_bottom + ((box_top - box_bottom) * (entry_pct / 100))
+        sl_level := box_top + syminfo.mintick * sl_buffer
+        tp_level := poi - ((sl_level - poi) * rr_target)
+    else
+        box_bottom := array.get(value_array, 0)
+        box_top := box_bottom + atr_buffer
+        poi := box_bottom + ((box_top - box_bottom) * (entry_pct / 100))
+        sl_level := box_bottom - syminfo.mintick * sl_buffer
+        tp_level := poi + ((poi - sl_level) * rr_target)
+
+    okay_to_draw = f_check_overlapping(poi, box_array, a)
+    if okay_to_draw
+        f_cancel_oldest(box_array, poi_array, id_array)
+        col_main = box_type == 1 ? supply_color : demand_color
+        col_out = box_type == 1 ? supply_outline_color : demand_outline_color
+        txt = box_type == 1 ? 'SUPPLY' : 'DEMAND'
+        tcol = box_type == 1 ? color.red : color.green
+        valign = box_type == 1 ? text.align_top : text.align_bottom
+        f_array_add_pop(box_array, box.new(left = box_left, top = box_top, right = box_right, bottom = box_bottom, border_color = col_out, bgcolor = col_main, extend = extend.right, text = txt, text_halign = text.align_right, text_valign = valign, text_color = tcol, text_size = size.small, xloc = xloc.bar_index))
+        f_array_add_pop(poi_array, box.new(left = box_left, top = poi, right = box_right, bottom = poi, border_color = color.new(tcol, 50), bgcolor = color.new(tcol, 50), extend = extend.right, text = 'POI', text_color = color.gray, text_size = size.small, xloc = xloc.bar_index))
+        order_seq := order_seq + 1
+        zid = (box_type == 1 ? 'S' : 'D') + str.tostring(order_seq)
+        f_array_add_pop(id_array, zid)
+        if in_window
+            if box_type == 1
+                strategy.entry(zid, strategy.short, qty = trade_qty, limit = poi)
+                strategy.exit('X' + zid, from_entry = zid, stop = sl_level, limit = tp_level)
+            else
+                strategy.entry(zid, strategy.long, qty = trade_qty, limit = poi)
+                strategy.exit('X' + zid, from_entry = zid, stop = sl_level, limit = tp_level)
+
+f_sd_to_bos(box_array, bos_array, poi_array, id_array, zone_type) =>
+    if array.size(box_array) > 0
+        for i = 0 to array.size(box_array) - 1
+            bx = array.get(box_array, i)
+            if not na(bx)
+                level_to_break = zone_type == 1 ? box.get_top(bx) : box.get_bottom(bx)
+                broken = zone_type == 1 ? close >= level_to_break : close <= level_to_break
+                if broken
+                    copied_box = box.copy(bx)
+                    f_array_add_pop(bos_array, copied_box)
+                    mid = (box.get_top(bx) + box.get_bottom(bx)) / 2
+                    box.set_top(array.get(bos_array, 0), mid)
+                    box.set_bottom(array.get(bos_array, 0), mid)
+                    box.set_extend(array.get(bos_array, 0), extend.none)
+                    box.set_right(array.get(bos_array, 0), bar_index)
+                    box.set_text(array.get(bos_array, 0), 'BOS')
+                    box.set_text_color(array.get(bos_array, 0), bos_label_color)
+                    box.set_text_size(array.get(bos_array, 0), size.small)
+                    box.delete(bx)
+                    box.delete(array.get(poi_array, i))
+                    oid = array.get(id_array, i)
+                    if not na(oid)
+                        strategy.cancel(oid)
+                    array.set(id_array, i, na)
+
+f_extend_box_endpoint(box_array) =>
+    if array.size(box_array) > 0
+        for i = 0 to array.size(box_array) - 1
+            bx = array.get(box_array, i)
+            if not na(bx)
+                box.set_right(bx, bar_index + 100)
+
+//
+// ================= EXECUTION =================
+//
+if not na(swing_high)
+    f_array_add_pop(swing_high_values, swing_high)
+    f_array_add_pop(swing_high_bns, bar_index[swing_length])
+    f_create_zone(swing_high_values, swing_high_bns, current_supply_box, current_supply_poi, current_supply_ids, 1, atr)
+
+else if not na(swing_low)
+    f_array_add_pop(swing_low_values, swing_low)
+    f_array_add_pop(swing_low_bns, bar_index[swing_length])
+    f_create_zone(swing_low_values, swing_low_bns, current_demand_box, current_demand_poi, current_demand_ids, -1, atr)
+
+f_sd_to_bos(current_supply_box, supply_bos, current_supply_poi, current_supply_ids, 1)
+f_sd_to_bos(current_demand_box, demand_bos, current_demand_poi, current_demand_ids, -1)
+f_extend_box_endpoint(current_supply_box)
+f_extend_box_endpoint(current_demand_box)

@@ -1,0 +1,13 @@
+{
+  "events": [
+    {
+      "title": "US Non-Farm Payrolls (NFP)",
+      "currency": "USD",
+      "impact": "HIGH",
+      "time": "2026-11-11T13:30:00+00:00"
+    }
+  ],
+  "headlines": [
+    "Gold spikes as safe haven demand rises and central bank buying accelerates"
+  ]
+}

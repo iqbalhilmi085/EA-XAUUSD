@@ -1,0 +1,75 @@
+; ============================================================
+; EA_Straddle_StopReverse_v7 - KONFIGURASI TARGET WR 100% v2
+; v8.2 - 2026.08.11
+; Fix loss spike-and-reverse (777 loss = SL 150 kena <140s dari entry):
+;   - SL diperlebar 150 -> 400 pts (SL kini di BAWAH level straddle,
+;     butuh round-trip penuh untuk kena; spike reversal jadi WIN kecil)
+;   - BE arm 5 -> 3, offset 2 -> 1 (BE mengunci lebih cepat)
+;   - Confirm 100 -> 150 (hanya breakout kuat yang masuk)
+; Prinsip: SETIAP trade wajib berakhir WIN.
+; ============================================================
+InpDistancePoints=150||150||1||5000||N
+InpLotSize=0.1||0.1||0.01||100||N
+InpPendingExpiryMinutes=60||60||0||10080||N
+InpUseEntryConfirm=True||true||0||true||N
+InpConfirmPoints=150||150||0||1000||N
+InpMaxSpreadPoints=25||25||1||200||N
+InpInitialStopPoints=400||400||1||5000||N
+InpUseTrailing=True||true||0||true||N
+InpTrailStart=40||40||1||5000||N
+InpTrailDistance=25||25||1||5000||N
+InpTrailStep=5||5||1||500||N
+InpUseTakeProfit=False||false||0||true||N
+InpTakeProfitPoints=0||0||0||5000||N
+InpZeroToleranceOnLossClose=True||true||0||true||N
+InpDeviationPointsProfitClose=10||10||0||500||N
+InpUseDrawdownGuard=True||true||0||true||N
+InpMaxDrawdownPercent=20.0||20.0||0.1||100.0||N
+InpFlattenOnDrawdownGuard=False||false||0||true||N
+InpUseCycleLimit=False||false||0||true||N
+InpMaxCyclesPerDay=20||20||1||1000||N
+InpProtectManualTrades=True||true||0||true||N
+InpProtectEATrades=True||true||0||true||N
+InpManualMagicFilter=0||0||0||999999999||N
+InpProtectBufferPoints=3||3||0||500||N
+InpProtectArmedMinProfit=5||5||0||500||N
+InpProtectCheckIntervalSec=1||1||1||60||N
+InpUseProfitLock=True||true||0||true||N
+InpLockArmPoints=6||6||1||500||N
+InpLockGiveBackPoints=2||2||1||500||N
+InpUseProgressiveLock=False||false||0||true||N
+InpProfitLockEATrades=True||true||0||true||N
+InpProfitLockManualTrades=False||false||0||true||N
+InpPlaceOnStart=True||true||0||true||N
+InpAutoRearm=True||true||0||true||N
+InpRearmDelaySeconds=3||3||0||3600||N
+InpUseSchedule=False||false||0||true||N
+InpScheduleHour=8||8||0||23||N
+InpScheduleMinute=0||0||0||59||N
+InpUseTradingHours=False||false||0||true||N
+InpTradingHourStart=0||0||0||23||N
+InpTradingHourEnd=23||23||0||23||N
+InpShowManualButton=True||true||0||true||N
+InpUseAsyncSend=True||true||0||true||N
+InpDeviationPoints=10||10||0||1000||N
+InpUseEarlyLossExit=False||false||0||true||N
+InpEarlyLossPercent=80||80||1||100||N
+InpLossCooldownSeconds=30||30||0||36000||N
+InpMinATRPoints=0||0||0||10000||N
+InpUseBEStop=True||true||0||true||N
+InpBEarmPoints=3||3||1||500||N
+InpBEoffsetPoints=1||1||1||500||N
+InpUseTimeExit=False||false||0||true||N
+InpTimeExitSeconds=120||120||1||36000||N
+InpTimeExitMinProfit=2||2||0||500||N
+InpUseMicroTP=True||true||0||true||N
+InpMicroTPPoints=12||12||1||5000||N
+InpUseAIFilter=True||true||0||true||N
+InpAIMinScore=60||60||0||100||N
+InpUseExternalAI=False||false||0||true||N
+InpAIConfidenceMin=60||60||0||100||N
+InpShowPanel=True||true||0||true||N
+InpPanelBgColor=0||0||0||16777215||N
+InpPanelTextColor=16777215||16777215||0||16777215||N
+InpMagicNumber=20260807||20260807||0||18446744073709551615||N
+InpTradeComment=StraddleSAR||StraddleSAR||||N

@@ -1,0 +1,36 @@
+{
+  "symbol": "XAUUSD",
+  "channels": ["console", "json_log"],
+  "rules": [
+    {
+      "id": "XAU_KEY_RESISTANCE",
+      "type": "PRICE_ABOVE",
+      "threshold": 2660.0,
+      "message": "XAUUSD broke above key resistance 2660.00"
+    },
+    {
+      "id": "XAU_KEY_SUPPORT",
+      "type": "PRICE_BELOW",
+      "threshold": 2640.0,
+      "message": "XAUUSD dropped below key support 2640.00"
+    },
+    {
+      "id": "XAU_VOLATILITY_SPIKE",
+      "type": "ATR_SPIKE",
+      "threshold": 3.5,
+      "message": "High XAUUSD volatility: ATR exceeded $3.50"
+    },
+    {
+      "id": "XAU_SPREAD_WARNING",
+      "type": "SPREAD_WIDENING",
+      "threshold": 20.0,
+      "message": "XAUUSD spread widened above 20 points"
+    },
+    {
+      "id": "XAU_SETUP_TRIGGER",
+      "type": "ENTRY_TRIGGERED",
+      "threshold": 70.0,
+      "message": "XAUUSD high-confidence entry triggered"
+    }
+  ]
+}

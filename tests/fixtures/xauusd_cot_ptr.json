@@ -1,0 +1,32 @@
+{
+  "as_of": "2026-11-11T13:30:00+00:00",
+  "cot_gold_gc": {
+    "report_date": "2026-11-10",
+    "open_interest": 540000,
+    "managed_money_long": 225000,
+    "managed_money_short": 35000,
+    "managed_money_net_change_1w": 14200,
+    "commercial_net": -215000,
+    "percentile_52w": 76
+  },
+  "congress_ptr_filings": [
+    {
+      "member": "Rep. Nancy Pelosi",
+      "chamber": "House",
+      "ticker": "GLD",
+      "asset": "SPDR Gold Trust ETF",
+      "transaction_type": "PURCHASE",
+      "amount_range": "$100,001 - $250,000",
+      "filed_date": "2026-11-08"
+    },
+    {
+      "member": "Sen. Markwayne Mullin",
+      "chamber": "Senate",
+      "ticker": "GDX",
+      "asset": "VanEck Gold Miners ETF",
+      "transaction_type": "PURCHASE",
+      "amount_range": "$50,001 - $100,000",
+      "filed_date": "2026-11-07"
+    }
+  ]
+}
